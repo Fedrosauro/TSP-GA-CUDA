@@ -51,14 +51,6 @@ __global__ void simple_mutation(int* selected_parents, int* offspring, int num_i
         if (curand_uniform(&states[idx]) < mutation_rate) {
             int idx_city1 = ((curand(&states[idx]) % (num_cities - 1))) + 1;
             int idx_city2 = ((curand(&states[idx]) % (num_cities - 1))) + 1;
-            /*if (idx_city1 == size_individual - 1) {
-                idx_city1 = size_individual - 1;
-            }
-            if (idx_city2 == size_individual - 1) {
-                idx_city2 = size_individual - 1;
-            }*/
-
-            //printf("idx_city1: %d, idx_city2: %d \n", idx_city1, idx_city2);
             
             for (int j = 0; j < size_individual; ++j) {
                 if (j != idx_city1 && j != idx_city2) {
@@ -77,33 +69,36 @@ __global__ void simple_mutation(int* selected_parents, int* offspring, int num_i
     }
 }
 
-/*
-__global__ void crossover(int* population, int* offspring, int num_individuals, int size_individual, int num_cities, curandState* states) {
+
+__global__ void crossover(int* selected_parents, int* offspring, int num_individuals, int size_individual, int num_cities, curandState* states) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < num_individuals / 2) {
         int parent1_idx = 2 * idx;
-        int parent2_idx = 2 * idx + 1;
+        int parent2_idx = 2 * (idx + 1);
 
-        // Perform order crossover (example)
-        int start = curand(&states[idx]) % num_cities;
-        int end = start + curand(&states[idx]) % (num_cities - start);
+        int idx_city_crossover = ((curand(&states[idx]) % (num_cities - 1))) + 1;
 
-        // Copy segment from parent1
-        for (int i = start; i < end; ++i) {
-            offspring[idx * num_cities + i] = population[parent1_idx * num_cities + i];
-        }
-
-        // Fill remaining genes from parent2
-        int current_pos = end;
-        for (int i = 0; i < num_cities; ++i) {
-            int city = population[parent2_idx * num_cities + i];
-            if (find(&offspring[idx * num_cities + start], &offspring[idx * num_cities + end], city) == &offspring[idx * num_cities + end]) {
-                if (current_pos == num_cities) {
-                    current_pos = 0;
-                }
-                offspring[idx * num_cities + current_pos++] = city;
+        for (int j = 0; j < size_individual; ++j) {
+            if (j <= idx_city_crossover) {
+                offspring[parent1_idx * size_individual + j] = selected_parents[parent2_idx * size_individual + j];
+                offspring[parent2_idx * size_individual + j] = selected_parents[parent1_idx * size_individual + j];
+            }
+            else {
+                offspring[parent1_idx * size_individual + j] = selected_parents[parent1_idx * size_individual + j];
+                offspring[parent2_idx * size_individual + j] = selected_parents[parent2_idx * size_individual + j];
             }
         }
+
+
+
     }
+
+    
 }
+
+/*
+
+    0 1 2 3 4 5 6 0
+    0 4 3 1 5 6 2 0
+
 */
