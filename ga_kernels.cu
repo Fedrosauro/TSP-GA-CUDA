@@ -79,18 +79,45 @@ __global__ void crossover(int* selected_parents, int* offspring, int num_individ
         int idx_city_crossover = ((curand(&states[idx]) % (num_cities - 1))) + 1;
 
         for (int j = 0; j < size_individual; ++j) {
-            if (j <= idx_city_crossover) {
+            if (j < idx_city_crossover) {
                 offspring[parent1_idx * size_individual + j] = selected_parents[parent2_idx * size_individual + j];
                 offspring[parent2_idx * size_individual + j] = selected_parents[parent1_idx * size_individual + j];
             }
-            else {
-                offspring[parent1_idx * size_individual + j] = selected_parents[parent1_idx * size_individual + j];
-                offspring[parent2_idx * size_individual + j] = selected_parents[parent2_idx * size_individual + j];
+        }
+
+        int k1 = idx_city_crossover;
+        int k2 = idx_city_crossover;
+
+        for (int j = 0; j < size_individual; ++j) {
+            int city_fill1 = selected_parents[parent1_idx * size_individual + j];
+            bool found1 = false;
+            for (int l = 0; l < k1; ++l) {
+                if (offspring[parent1_idx * size_individual + l] == city_fill1) {
+                    found1 = true;
+                    break;
+                }
+            }
+            if (!found1) {
+                offspring[parent1_idx * size_individual + k1] = city_fill1;
+                k1++;
+            }
+
+            int city_fill2 = selected_parents[parent2_idx * size_individual + j];
+            bool found2 = false;
+            for (int l = 0; l < k2; ++l) {
+                if (offspring[parent2_idx * size_individual + l] == city_fill2) {
+                    found2 = true;
+                    break;
+                }
+            }
+            if (!found2) {
+                offspring[parent2_idx * size_individual + k2] = city_fill2;
+                k2++;
             }
         }
 
-
-
+        offspring[parent1_idx * size_individual + k1] = 0;
+        offspring[parent2_idx * size_individual + k1] = 0;
     }
 
     
