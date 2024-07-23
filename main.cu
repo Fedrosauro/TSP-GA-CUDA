@@ -77,7 +77,9 @@ int main() {
     
         //tournament_selection << <num_blocks, threads_per_block >> > (d_population, d_selected_individ, d_fitness_scores, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES, TOURNAMENT_SIZE, d_states);
 
-        simple_mutation << <num_blocks, threads_per_block >> > (d_population, d_offspring, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES, MUTATION_RATE, d_states);
+        //simple_mutation << <num_blocks, threads_per_block >> > (d_population, d_offspring, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES, MUTATION_RATE, d_states);
+    
+        simple_crossover << <num_blocks, threads_per_block >> > (d_population, d_offspring, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES, d_states);
     }
     
     vector<int> selected_individ_flat(POPULATION_SIZE * SIZE_INDIVIDUAL);

@@ -70,7 +70,7 @@ __global__ void simple_mutation(int* selected_parents, int* offspring, int num_i
 }
 
 
-__global__ void crossover(int* selected_parents, int* offspring, int num_individuals, int size_individual, int num_cities, curandState* states) {
+__global__ void simple_crossover(int* selected_parents, int* offspring, int num_individuals, int size_individual, int num_cities, curandState* states) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < num_individuals / 2) {
         int parent1_idx = 2 * idx;
@@ -79,14 +79,14 @@ __global__ void crossover(int* selected_parents, int* offspring, int num_individ
         int idx_city_crossover = ((curand(&states[idx]) % (num_cities - 1))) + 1;
 
         for (int j = 0; j < size_individual; ++j) {
-            if (j < idx_city_crossover) {
+            if (j <= idx_city_crossover) {
                 offspring[parent1_idx * size_individual + j] = selected_parents[parent2_idx * size_individual + j];
                 offspring[parent2_idx * size_individual + j] = selected_parents[parent1_idx * size_individual + j];
             }
         }
 
-        int k1 = idx_city_crossover;
-        int k2 = idx_city_crossover;
+        int k1 = idx_city_crossover + 1;
+        int k2 = idx_city_crossover + 1;
 
         for (int j = 0; j < size_individual; ++j) {
             int city_fill1 = selected_parents[parent1_idx * size_individual + j];
