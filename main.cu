@@ -8,10 +8,10 @@
 
 using namespace std;
 
-const int NUM_CITIES = 7;
+const int NUM_CITIES = 15;
 
 const int SIZE_INDIVIDUAL = NUM_CITIES + 1;
-const int POPULATION_SIZE = 100;
+const int POPULATION_SIZE = 2;
 const int NUM_GENERATIONS = 1;
 const int TOURNAMENT_SIZE = POPULATION_SIZE;
 const float MUTATION_RATE = 1.0;
@@ -70,7 +70,8 @@ int main() {
     int num_blocks = (POPULATION_SIZE + threads_per_block - 1) / threads_per_block;
 
     //setup kernel
-    setup_kernel << <num_blocks, threads_per_block >> > (d_states, time(NULL));
+    unsigned long random_seed = generate_random_seed();
+    setup_kernel << <num_blocks, threads_per_block >> > (d_states, random_seed);
     
     for (int generation = 0; generation < NUM_GENERATIONS; ++generation) {
         evaluate_population << <num_blocks, threads_per_block >> > (d_population, d_fitness_scores, d_distance_matrix, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES);

@@ -4,13 +4,14 @@
 #include <cstdlib>
 #include <ctime>
 #include "utils.h"
+#include <algorithm>
 
 using namespace std;
 
-vector<int> create_individual(int num_cities) {
+vector<int> create_individual(int num_cities, mt19937& rng) {
     vector<int> individual(num_cities - 1);
     iota(individual.begin(), individual.end(), 1);  // Fill with 1 to num_cities-1
-    random_shuffle(individual.begin(), individual.end());
+    shuffle(individual.begin(), individual.end(), rng);
 
     // Insert 0 at the beginning and end
     individual.insert(individual.begin(), 0);
@@ -21,8 +22,9 @@ vector<int> create_individual(int num_cities) {
 
 vector<vector<int>> initialize_population(int population_size, int num_cities) {
     vector<vector<int>> population(population_size);
+    mt19937 rng(time(0));  // Seed random number generator with current time
     for (int i = 0; i < population_size; ++i) {
-        population[i] = create_individual(num_cities);
+        population[i] = create_individual(num_cities, rng);
     }
     return population;
 }
@@ -42,4 +44,11 @@ void generate_distance_matrix(float* distance_matrix, int num_cities) {
             }
         }
     }
+}
+
+unsigned long generate_random_seed() {
+    random_device rd;  // Non-deterministic random number generator
+    mt19937_64 gen(rd());  // Standard Mersenne Twister engine
+    uniform_int_distribution<unsigned long> dis;  // Uniform distribution over unsigned long range
+    return dis(gen);  // Generate a random unsigned long
 }

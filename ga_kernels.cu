@@ -74,9 +74,11 @@ __global__ void simple_crossover(int* selected_parents, int* offspring, int num_
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < num_individuals / 2) {
         int parent1_idx = 2 * idx;
-        int parent2_idx = 2 * (idx + 1);
+        int parent2_idx = 2 * idx + 1;
 
         int idx_city_crossover = ((curand(&states[idx]) % (num_cities - 1))) + 1;
+
+        printf("%d \n\n", idx_city_crossover);
 
         for (int j = 0; j < size_individual; ++j) {
             if (j <= idx_city_crossover) {
@@ -84,7 +86,7 @@ __global__ void simple_crossover(int* selected_parents, int* offspring, int num_
                 offspring[parent2_idx * size_individual + j] = selected_parents[parent1_idx * size_individual + j];
             }
         }
-
+        
         int k1 = idx_city_crossover + 1;
         int k2 = idx_city_crossover + 1;
 
@@ -118,6 +120,7 @@ __global__ void simple_crossover(int* selected_parents, int* offspring, int num_
 
         offspring[parent1_idx * size_individual + k1] = 0;
         offspring[parent2_idx * size_individual + k1] = 0;
+        
     }
 
     
