@@ -78,8 +78,6 @@ __global__ void simple_crossover(int* selected_parents, int* offspring, int num_
 
         int idx_city_crossover = ((curand(&states[idx]) % (num_cities - 1))) + 1;
 
-        printf("%d \n\n", idx_city_crossover);
-
         for (int j = 0; j < size_individual; ++j) {
             if (j <= idx_city_crossover) {
                 offspring[parent1_idx * size_individual + j] = selected_parents[parent2_idx * size_individual + j];
@@ -117,18 +115,7 @@ __global__ void simple_crossover(int* selected_parents, int* offspring, int num_
                 k2++;
             }
         }
-
         offspring[parent1_idx * size_individual + k1] = 0;
         offspring[parent2_idx * size_individual + k1] = 0;
-        
-    }
-
-    
+    } 
 }
-
-/*
-
-    0 1 2 3 4 5 6 0
-    0 4 3 1 5 6 2 0
-
-*/

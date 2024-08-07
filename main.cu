@@ -5,31 +5,35 @@
 #include <stdio.h>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
-const int NUM_CITIES = 15;
+const int NUM_CITIES = 100;
 
 const int SIZE_INDIVIDUAL = NUM_CITIES + 1;
-const int POPULATION_SIZE = 2;
-const int NUM_GENERATIONS = 1;
-const int TOURNAMENT_SIZE = POPULATION_SIZE;
+const int POPULATION_SIZE = 10000;
+const int NUM_GENERATIONS = 1500;
+const int TOURNAMENT_SIZE = 50;
 const float MUTATION_RATE = 1.0;
 
 int main() {
 
     vector<vector<int>> population = initialize_population(POPULATION_SIZE, NUM_CITIES);
 
-    cout << "Population:" << endl;
+    cout << "TSP GA CUDA IMPLEMENTATION START" << endl <<
+            "================================" << endl;
+
+    /*cout << "Population:" << endl;
     for (int i = 0; i < POPULATION_SIZE; ++i) {
         cout << "Permutation " << i << ": ";
         for (int city : population[i]) {
             cout << city << " ";
         }
         cout << endl;
-    }
+    }*/
 
-    int *d_population, *d_selected_individ, *d_offspring;
+    int *d_population, *d_selected_individ, * d_offspring;
     float *d_fitness_scores, *d_distance_matrix;
     curandState *d_states;
 
@@ -57,51 +61,60 @@ int main() {
     float distance_matrix[NUM_CITIES * NUM_CITIES];
     generate_distance_matrix(distance_matrix, NUM_CITIES);
 
-    for (int i = 0; i < NUM_CITIES; ++i) {
+    /*for (int i = 0; i < NUM_CITIES; ++i) {
         for (int j = 0; j < NUM_CITIES; ++j) {
             cout << distance_matrix[i * NUM_CITIES + j] << "\t";
         }
         cout << endl;
-    }
+    }*/
     
     cudaMemcpy(d_distance_matrix, distance_matrix, NUM_CITIES * NUM_CITIES * sizeof(float), cudaMemcpyHostToDevice);
 
     int threads_per_block = 256;
     int num_blocks = (POPULATION_SIZE + threads_per_block - 1) / threads_per_block;
 
+    float best_fit = FLT_MAX;
+    int best_gen = 0;
+    vector<int> best_individual(SIZE_INDIVIDUAL);
+
     //setup kernel
     unsigned long random_seed = generate_random_seed();
     setup_kernel << <num_blocks, threads_per_block >> > (d_states, random_seed);
     
     for (int generation = 0; generation < NUM_GENERATIONS; ++generation) {
+        cout << "Generation: " << generation << endl;
+
+        tournament_selection << <num_blocks, threads_per_block >> > (d_population, d_selected_individ, d_fitness_scores, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES, TOURNAMENT_SIZE, d_states);
+
+        simple_crossover << <num_blocks, threads_per_block >> > (d_selected_individ, d_offspring, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES, d_states);
+
+        simple_mutation << <num_blocks, threads_per_block >> > (d_offspring, d_population, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES, MUTATION_RATE, d_states);
+
         evaluate_population << <num_blocks, threads_per_block >> > (d_population, d_fitness_scores, d_distance_matrix, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES);
-    
-        //tournament_selection << <num_blocks, threads_per_block >> > (d_population, d_selected_individ, d_fitness_scores, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES, TOURNAMENT_SIZE, d_states);
 
-        //simple_mutation << <num_blocks, threads_per_block >> > (d_population, d_offspring, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES, MUTATION_RATE, d_states);
-    
-        simple_crossover << <num_blocks, threads_per_block >> > (d_population, d_offspring, POPULATION_SIZE, SIZE_INDIVIDUAL, NUM_CITIES, d_states);
-    }
-    
-    vector<int> selected_individ_flat(POPULATION_SIZE * SIZE_INDIVIDUAL);
-    //cudaMemcpy(selected_individ_flat.data(), d_selected_individ, POPULATION_SIZE * SIZE_INDIVIDUAL * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(selected_individ_flat.data(), d_offspring, POPULATION_SIZE * SIZE_INDIVIDUAL * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(flat_population.data(), d_population, POPULATION_SIZE * SIZE_INDIVIDUAL * sizeof(int), cudaMemcpyDeviceToHost);
 
-    cout << "size of flat result: " << selected_individ_flat.size() << endl;
-    for (int i = 0; i < selected_individ_flat.size(); ++i) {
-        cout << selected_individ_flat[i] << " ";
-        if ((i + 1) % SIZE_INDIVIDUAL == 0) {
-            cout << endl;
+        vector<float> fitness_scores(POPULATION_SIZE);
+        cudaMemcpy(fitness_scores.data(), d_fitness_scores, POPULATION_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
+
+        auto min_it = min_element(fitness_scores.begin(), fitness_scores.end());
+        int best_idx = distance(fitness_scores.begin(), min_it);
+        float current_best_fit = *min_it;
+
+        if (current_best_fit < best_fit) {
+            best_fit = current_best_fit;
+            best_gen = generation;
+            for (int i = 0; i < SIZE_INDIVIDUAL; i++) {
+                best_individual[i] = flat_population[best_idx * SIZE_INDIVIDUAL + i];
+            }
         }
+        cout << "Best individual: [ ";
+        for (int gene : best_individual) {
+            cout << gene << " ";
+        }
+        cout << "] found at gen: " << best_gen << endl << "Fitness: " << best_fit << endl;
     }
-    
-    vector<float> fitness_scores(POPULATION_SIZE);
-    cudaMemcpy(fitness_scores.data(), d_fitness_scores, POPULATION_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
-
-    for (int i = 0; i < POPULATION_SIZE; ++i) {
-        cout << "Fitness " << i << " : " << fitness_scores[i] << "\n";
-    }
-    
+       
     cudaFree(d_population);
     cudaFree(d_offspring);
     cudaFree(d_selected_individ);
